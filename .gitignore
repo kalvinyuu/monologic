@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Monologic specific
+monologic_mint_authority.json
+
+# Editor backup and temporary files
+*~
+#*#
+*.bak
+*.swp
+*.swo
+*.un~
+.~*
