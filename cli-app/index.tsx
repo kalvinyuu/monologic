@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { render, Text, Box } from 'ink';
+import { render, Text, Box, useFocus, useInput } from 'ink'; // Import useFocus, useInput
 import TextInput from 'ink-text-input';
 import axios from 'axios';
 import CodebaseScanner from './src/components/CodebaseScanner';
+import { CodeAgent } from './src/agents/CodeAgent'; // Import CodeAgent
 
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama2'; // Default to llama2 if not set
 
@@ -24,6 +25,32 @@ function App() {
 	const [loadingLoras, setLoadingLoras] = useState(true);
 	const [lorasError, setLorasError] = useState<string | null>(null);
 	const [lastScanResults, setLastScanResults] = useState<any>(null);
+	const [isScannerActive, setIsScannerActive] = useState(true); // New state to track scanner activity
+	const [activeInput, setActiveInput] = useState<'ollama' | 'codeAgent' | null>(null); // New state for active input
+
+	useEffect(() => {
+		if (!isScannerActive && activeInput === null) {
+			setActiveInput('ollama'); // Set initial focus to Ollama chat once scanner is done
+		}
+	}, [isScannerActive, activeInput]);
+
+	useInput((input, key) => {
+		if (key.tab) {
+			if (activeInput === 'ollama') {
+				setActiveInput('codeAgent');
+			} else if (activeInput === 'codeAgent') {
+				setActiveInput('ollama');
+			} else if (!isScannerActive) { // If no input is active and scanner is done, default to Ollama
+				setActiveInput('ollama');
+			}
+		}
+	});
+
+	const [codeAgentInput, setCodeAgentInput] = useState('');
+	const [codeAgentResponse, setCodeAgentResponse] = useState('Ask the Code Agent...');
+	const [loadingCodeAgent, setLoadingCodeAgent] = useState(false);
+
+	const codeAgent = new CodeAgent(); // Instantiate CodeAgent
 
 	// Helper to get error message
 	const getErrorMessage = (error: unknown): string => {
@@ -48,6 +75,23 @@ function App() {
 
 		fetchLoras();
 	}, []);
+
+	const handleCodeAgentSubmit = async (text: string) => {
+		if (!text.trim()) return;
+
+		setLoadingCodeAgent(true);
+		setCodeAgentResponse('Code Agent is thinking...');
+
+		try {
+			const response = await codeAgent.invokeAgent(text, process.cwd());
+			setCodeAgentResponse(response);
+		} catch (error) {
+			setCodeAgentResponse(`Error: ${getErrorMessage(error)}. Is Ollama running and model '${OLLAMA_MODEL}' available?`);
+		} finally {
+			setLoadingCodeAgent(false);
+			setCodeAgentInput('');
+		}
+	};
 
 	const handleOllamaSubmit = async (text: string) => {
 		if (!text.trim()) return;
@@ -78,7 +122,10 @@ function App() {
 
 			{/* Codebase Scanner Section */}
 			<Box marginTop={1}>
-				<CodebaseScanner onScanComplete={setLastScanResults} />
+				<CodebaseScanner
+					onScanComplete={setLastScanResults}
+					onScannerActivityChange={setIsScannerActive} // Pass the new prop
+				/>
 			</Box>
 
 			{/* Desired LoRAs Section */}
@@ -102,6 +149,24 @@ function App() {
 				)}
 			</Box>
 
+			{/* Code Agent Section */}
+			<Box flexDirection="column" marginTop={2}>
+				<Text bold underline>Code Agent ({OLLAMA_MODEL}):</Text>
+				<Box>
+					<Text>{codeAgentResponse}</Text>
+				</Box>
+				<Box marginTop={1}>
+					<Text>Task: </Text>
+					<TextInput
+						value={codeAgentInput}
+						onChange={setCodeAgentInput}
+						onSubmit={handleCodeAgentSubmit}
+						placeholder={loadingCodeAgent ? '' : 'Enter a task for the agent...'}
+						focus={activeInput === 'codeAgent'} // Focus when activeInput is 'codeAgent'
+					/>
+				</Box>
+			</Box>
+
 			{/* Ollama Chat Section */}
 			<Box flexDirection="column" marginTop={2}>
 				<Text bold underline>Ollama Chat ({OLLAMA_MODEL}):</Text>
@@ -115,6 +180,7 @@ function App() {
 						onChange={setInput}
 						onSubmit={handleOllamaSubmit}
 						placeholder={loadingOllama ? '' : 'Ask something...'}
+						focus={activeInput === 'ollama'} // Focus when activeInput is 'ollama'
 					/>
 				</Box>
 			</Box>

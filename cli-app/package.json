@@ -1,8 +1,18 @@
 {
-  "name": "cli-app",
-  "module": "index.ts",
+  "name": "monologic-cli",
+  "version": "0.1.0",
+  "module": "dist/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
-  "private": true,
+  "private": false,
+  "bin": {
+    "monologic-cli": "dist/index.js"
+  },
+  "scripts": {
+    "build": "bun build index.tsx --outdir dist --target bun --external react --external ink --external ink-text-input --external axios --external @langchain/ollama --external @langchain/langgraph --external @langchain/core",
+    "start": "bun run index.tsx"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -10,6 +20,9 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "langchain": "^0.1.0",
+    "@langchain/ollama": "^0.1.0",
+    "@langchain/langgraph": "^0.1.0",
     "@types/node": "^24.9.1",
     "@types/react": "^19.2.2",
     "axios": "^1.13.0",
