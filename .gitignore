@@ -30,6 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+
 # env files (can opt-in for committing if needed)
 .env*
 
@@ -42,6 +43,7 @@ next-env.d.ts
 
 # Monologic specific
 monologic_mint_authority.json
+monologic-db/
 
 # Editor backup and temporary files
 *~
